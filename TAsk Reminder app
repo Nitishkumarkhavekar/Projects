@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+xmlns:android="http://schemas.android.com/apk/res/android"
+xmlns:app="http://schemas.android.com/apk/res-auto"
+xmlns:tools="http://schemas.android.com/tools"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+tools:context=".MainActivity">
+<Button
+android:id="@+id/button4"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:layout_marginTop="50dp"
+android:layout_marginEnd="14dp"
+android:text="update"
+app:layout_constraintEnd_toEndOf="parent"
+app:layout_constraintStart_toEndOf="@+id/button3"
+app:layout_constraintTop_toBottomOf="@+id/button2" />
+<EditText
+android:id="@+id/editTextText"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:layout_marginStart="61dp"
+android:layout_marginTop="140dp"
+android:ems="10"
+android:hint="enter roll number"
+android:inputType="text"
+app:layout_constraintStart_toStartOf="parent"
+app:layout_constraintTop_toTopOf="parent"
+tools:ignore="TouchTargetSizeCheck" />
+<EditText
+android:id="@+id/editTextText2"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:layout_marginStart="62dp"
+android:layout_marginTop="68dp"
+android:ems="10"
+android:hint="Enter name"
+android:inputType="text"
+app:layout_constraintStart_toStartOf="parent"
+app:layout_constraintTop_toBottomOf="@+id/editTextText"
+tools:ignore="TouchTargetSizeCheck" />
+<Button
+android:id="@+id/button"
+android:layout_width="wrap_content"android:layout_height="wrap_content"
+android:layout_marginTop="84dp"
+android:text="Insert"
+app:layout_constraintEnd_toEndOf="@+id/editTextText2"
+app:layout_constraintHorizontal_bias="0.0"
+app:layout_constraintStart_toStartOf="@+id/editTextText2"
+app:layout_constraintTop_toBottomOf="@+id/editTextText2" />
+<Button
+android:id="@+id/button2"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:layout_marginTop="1dp"
+android:layout_marginEnd="101dp"
+android:text="show"
+app:layout_constraintEnd_toEndOf="parent"
+app:layout_constraintTop_toTopOf="@+id/button" />
+<Button
+android:id="@+id/button3"
+android:layout_width="wrap_content"
+android:layout_height="wrap_content"
+android:layout_marginTop="50dp"
+android:layout_marginEnd="12dp"
+android:text="delet"
+app:layout_constraintEnd_toStartOf="@+id/button4"
+app:layout_constraintStart_toStartOf="parent"
+app:layout_constraintTop_toBottomOf="@+id/button" />
+</androidx.constraintlayout.widget.ConstraintLayout>
+Database.java
+package com.example.database2;
+import androidx.appcompat.app.AppCompatActivity;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
+import com.example.database2.DBHelper;
+import java.util.ArrayList;
+public class MainActivity extends AppCompatActivity {
+private EditText e, e1;
+private Button b,b1,b2,b3,b4;
+private DBHelper db;@Override
+protected void onCreate(Bundle savedInstanceState) {
+super.onCreate(savedInstanceState);
+setContentView(R.layout.activity_main);
+e = findViewById(R.id.editTextText);
+e1 = findViewById(R.id.editTextText2);
+b = findViewById(R.id.button);
+b1=findViewById(R.id.button2);
+b2=findViewById(R.id.button3);
+b3=findViewById(R.id.button4);
+db = new DBHelper(MainActivity.this);
+b.setOnClickListener(new View.OnClickListener() {
+@Override
+public void onClick(View view) {
+String name = e1.getText().toString();
+if (name.isEmpty()) {
+Toast.makeText(MainActivity.this, "Please enter name",
+Toast.LENGTH_SHORT).show();
+} else {
+long result = db.insertStudent(name);
+if (result != -1) {
+Toast.makeText(MainActivity.this, "Data has been
+inserted", Toast.LENGTH_SHORT).show();
+} else {
+Toast.makeText(MainActivity.this, "Error inserting
+data", Toast.LENGTH_SHORT).show();
+}
+e1.setText("");
+}
+}
+});
+b1.setOnClickListener(new View.OnClickListener() {
+@Override
+public void onClick(View v) {
+ArrayList<String> ar = db.readStudents();
+for (String student : ar) {
+Toast.makeText(getApplicationContext(), student,
+Toast.LENGTH_LONG).show();
+}
+}
+});
+b2.setOnClickListener(new View.OnClickListener() {
+@Override
+public void onClick(View v) {
+String roll = e.getText().toString();
+String name = e1.getText().toString();
+db.updateStudent(name, roll);
+Toast.makeText(getApplicationContext(), "updating the
+value...", Toast.LENGTH_LONG).show();
+}});
+b3.setOnClickListener(new View.OnClickListener() {
+@Override
+public void onClick(View v) {
+String name = e1.getText().toString();
+db.deleteStudent(name);
+Toast.makeText(getApplicationContext(), "Deleting the value",
+Toast.LENGTH_LONG).show();
+}
+});
+}
+}
+DBHelper.class
+package com.example.database2;
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+import java.util.ArrayList;
+public class DBHelper extends SQLiteOpenHelper {
+public static final String db_name = "college";
+public static final int db_version = 1;
+public static final String table_name = "student";
+public static final String sroll = "roll";
+public static final String sname = "name";
+public DBHelper(Context context) {
+super(context, db_name, null, db_version);
+}
+@Override
+public void onCreate(SQLiteDatabase db) {
+String query = "CREATE TABLE " + table_name + "(" + sroll + " INTEGER
+PRIMARY KEY AUTOINCREMENT, "
++ sname + " TEXT )";
+db.execSQL(query);
+}
+@Override
+public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion)
+{
+db.execSQL("DROP TABLE IF EXISTS " + table_name);
+onCreate(db);
+}
+public long insertStudent(String name) {SQLiteDatabase db = this.getWritableDatabase();
+ContentValues values = new ContentValues();
+values.put(sname, name);
+long newRowId = db.insert(table_name, null, values);
+db.close();
+return newRowId;
+}
+public ArrayList<String> readStudents() {
+SQLiteDatabase db = this.getReadableDatabase();
+Cursor cursor = db.rawQuery("SELECT * FROM " + table_name, null);
+ArrayList<String> studentList = new ArrayList<>();
+if (cursor.moveToFirst()) {
+do {
+studentList.add("ID: " + cursor.getString(0) + ", Name: " +
+cursor.getString(1));
+} while (cursor.moveToNext());
+}
+cursor.close();
+return studentList;
+}
+public void updateStudent(String name, String roll) {
+SQLiteDatabase db = this.getWritableDatabase();
+ContentValues values = new ContentValues();
+values.put(sname, name);
+db.update(table_name, values, "roll=?", new String[]{roll});
+db.close();
+}
+public void deleteStudent(String name) {
+SQLiteDatabase db = this.getWritableDatabase();
+db.delete(table_name, "name=?", new String[]{name});
+db.close();
+}
+}
