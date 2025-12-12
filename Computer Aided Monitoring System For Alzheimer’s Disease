@@ -1,145 +1,106 @@
-import tkinter as tk
-from tkinter import messagebox
-from tkinter import filedialog
-import os
-from PIL import Image, ImageFilter
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
+import os
+import tkinter as tk
+from tkinter import filedialog
 
-# Sample username and password (replace with actual credentials)
-USERNAME = "admin"
-PASSWORD = "12"
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
-# Sample dataset directory
-DATASET_DIR = r"C:\Users\praga\Downloads\archive\OriginalDataset"
+def show_main_screen():
+    while True:
+        clear_screen()
+        print("\nAlzheimer's Disease Progress Tracker")
+        print("1. Alzheimer's Info")
+        print("2. Calculate Progress")
+        print("3. Exit")
+        choice = input("Enter your choice: ")
 
+        if choice == '1':
+            show_alzheimer_info()
+        elif choice == '2':
+            check_progress()
+        elif choice == '3':
+            print("Exiting the application.")
+            break
+        else:
+            print("Invalid choice! Try again.")
 
-def login():
-    username = username_entry.get()
-    password = password_entry.get()
-    if username == USERNAME and password == PASSWORD:
-        messagebox.showinfo("Login Successful", "Welcome, Admin!")
-        open_next_page()
-    else:
-        messagebox.showerror("Login Failed", "Invalid username or password")
+def show_alzheimer_info():
+    clear_screen()
+    print("\n### Alzheimer's Disease Information\n")
+    print("1. Overview: Alzheimer's is a type of dementia that affects memory and thinking.")
+    print("2. Symptoms: Memory loss, confusion, difficulty in problem-solving.")
+    print("3. Causes: Genetic factors, aging, lifestyle.")
+    print("4. Treatment: No cure, but medications can help manage symptoms.")
+    input("\nPress Enter to return to the main menu...")
 
+def preprocess_image(image_path):
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    if image is None:
+        print("Error: Unable to read image file.")
+        return None
+    image = cv2.GaussianBlur(image, (5, 5), 0)
+    _, image_binary = cv2.threshold(image, 25, 255, cv2.THRESH_BINARY)
+    return cv2.resize(image_binary, (300, 300))
 
-def open_next_page():
-    root.withdraw()  # Hide the login window
-    next_page_window = tk.Toplevel(root)
-    next_page_window.title("Upload images")
-    next_page_window.geometry("800x500")
+def calculate_metrics(image):
+    total_pixels = image.size
+    white_pixels = np.sum(image == 255)
+    black_pixels = total_pixels - white_pixels
+    ratio = white_pixels / black_pixels if black_pixels > 0 else float('inf')
+    return total_pixels, white_pixels, black_pixels, ratio
 
-    # Function to display information about Alzheimer's disease
-    def show_alzheimer_info():
-        messagebox.showinfo("Alzheimer's Information",
-                            "Alzheimer's disease is a progressive disorder that causes brain cells to degenerate and die. It is the most common cause of dementia, a continuous decline in thinking, behavioral, and social skills that disrupts a person's ability to function independently.")
+def check_progress():
+    clear_screen()
+    print("Select two MRI images to check progress.")
 
-    # Button to display Alzheimer's information
-    alzheimer_info_button = tk.Button(
-        next_page_window, text="Alzheimer's Information", command=show_alzheimer_info)
-    alzheimer_info_button.pack(pady=10)
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes('-topmost', True)
+    root.update()
 
-    # Button to close the window
-    close_button = tk.Button(
-        next_page_window, text="Close", command=next_page_window.destroy)
-    close_button.pack(pady=10)
+    image1_path = filedialog.askopenfilename(title="Select MRI Image 1", filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp")])
+    if not image1_path:
+        print("No image selected.")
+        root.destroy()
+        input("Press Enter to return...")
+        return
 
-    # Function to handle image upload, classification, and filter
-    def upload_and_analyze():
-        file_path1 = filedialog.askopenfilename(title="Choose Image 1")
-        file_path2 = filedialog.askopenfilename(title="Choose Image 2")
-        if file_path1 and file_path2:
-            # Open the images
-            original_image1 = Image.open(file_path1)
-            original_image2 = Image.open(file_path2)
+    image2_path = filedialog.askopenfilename(title="Select MRI Image 2", filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp")])
+    if not image2_path:
+        print("No image selected.")
+        root.destroy()
+        input("Press Enter to return...")
+        return
 
-            # Apply Gaussian blur filter
-            filtered_image1 = original_image1.filter(
-                ImageFilter.GaussianBlur(radius=2))  # Adjust radius as needed
-            filtered_image2 = original_image2.filter(
-                ImageFilter.GaussianBlur(radius=2))  # Adjust radius as needed
+    root.destroy()
+    image1 = preprocess_image(image1_path)
+    image2 = preprocess_image(image2_path)
 
-            # Display the filtered images
-            filtered_image1.show()
-            filtered_image2.show()
+    if image1 is None or image2 is None:
+        input("Press Enter to return...")
+        return
 
-            # Process and analyze the images using OpenCV
-            progress = process_and_analyze_images(
-                file_path1, file_path2, original_image1, original_image2)
+    metrics1 = calculate_metrics(image1)
+    metrics2 = calculate_metrics(image2)
+    progress_percentage = ((metrics2[1] - metrics1[1]) / metrics1[1]) * 100 if metrics1[1] != 0 else 0
 
-            print('Progress:', progress)
+    print(f"Progress in Percentage: {progress_percentage:.2f}%")
+    print("You're recovering! Keep up the fight!" if progress_percentage < 0 else "Keep monitoring progress regularly.")
 
-    # Button to upload images and apply Gaussian filter
-    analyze_button = tk.Button(
-        next_page_window, text="Upload and Analyze Images", command=upload_and_analyze)
-    analyze_button.pack(pady=10)
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+    axes[0].imshow(image1, cmap='gray')
+    axes[0].set_title("Processed MRI Image 1")
+    axes[0].axis('off')
 
+    axes[1].imshow(image2, cmap='gray')
+    axes[1].set_title("Processed MRI Image 2")
+    axes[1].axis('off')
+    plt.show()
 
-def process_and_analyze_images(file_path1, file_path2, original_image1, original_image2):
-    # Read the images
-    img1 = cv2.imread(file_path1)
-    img2 = cv2.imread(file_path2)
+    input("Press Enter to return...")
 
-    # Check if the images are loaded correctly
-    if img1 is None or img2 is None:
-        print("Error: Unable to load image(s).")
-    else:
-        # Display the images
-        cv2.imshow('Image 1', img1)
-        cv2.imshow('Image 2', img2)
-
-        # Count the number of white and black pixels
-        number_of_white_pix1 = np.sum(img1 == 255)
-        number_of_black_pix1 = np.sum(img1 == 0)
-
-        number_of_white_pix2 = np.sum(img2 == 255)
-        number_of_black_pix2 = np.sum(img2 == 0)
-
-        # Calculate the ratios
-        Ratio1 = number_of_white_pix1 / number_of_black_pix1
-        Ratio2 = number_of_white_pix2 / number_of_black_pix2
-
-        # Calculate progress
-        progress = calculate_progress(Ratio1, Ratio2)
-
-        # Wait for a key press and close the window
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-        return progress
-
-
-def calculate_progress(Ratio1, Ratio2):
-    # Calculate progress
-    sub = abs(Ratio2 - Ratio1)  # Taking absolute difference to ensure positive result
-    progress = (sub / max(Ratio1, Ratio2)) * 100  # Dividing by the maximum ratio
-    return progress
-
-
-# Create main window
-root = tk.Tk()
-root.title("Login")
-root.geometry("800x500")
-
-# Username label and entry
-username_label = tk.Label(root, text="Username:")
-username_label.grid(row=0, column=0, padx=100, pady=90)
-username_entry = tk.Entry(root)
-username_entry.grid(row=0, column=1, padx=100, pady=90)
-
-# Password label and entry
-password_label = tk.Label(root, text="Password:")
-password_label.grid(row=1, column=0, padx=100, pady=90)
-password_entry = tk.Entry(root, show="*")
-password_entry.grid(row=1, column=1, padx=100, pady=90)
-
-# Login button
-login_button = tk.Button(root, text="Login", command=login)
-login_button.grid(row=2, column=0, columnspan=2, pady=10)
-
-# Keep IDLE running even after Tkinter window is closed
-root.protocol("WM_DELETE_WINDOW", root.iconify)
-
-# Run the main event loop
-root.mainloop()
+if __name__ == "__main__":
+    show_main_screen()
